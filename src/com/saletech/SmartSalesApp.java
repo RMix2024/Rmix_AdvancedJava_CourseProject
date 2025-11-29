@@ -1,6 +1,14 @@
 package com.saletech;
 
 import java.util.*;
+import java.io.IOException;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+
 
 /**
  * SmartSalesApp
@@ -14,6 +22,32 @@ import java.util.*;
  * the system into a full inventory/order solution.
  */
 public class SmartSalesApp {
+	 private static final Logger LOGGER =
+	            Logger.getLogger(SmartSalesApp.class.getName());
+
+	    static {
+	        try {
+	            LogManager.getLogManager().reset();
+
+	            LOGGER.setLevel(Level.ALL);
+
+	            ConsoleHandler consoleHandler = new ConsoleHandler();
+	            consoleHandler.setLevel(Level.INFO);
+	            consoleHandler.setFormatter(new SimpleFormatter());
+	            LOGGER.addHandler(consoleHandler);
+
+	            FileHandler fileHandler = new FileHandler("smartsalesapp.log", true);
+	            fileHandler.setLevel(Level.FINE);
+	            fileHandler.setFormatter(new SimpleFormatter());
+	            LOGGER.addHandler(fileHandler);
+
+	            LOGGER.config("SmartSalesApp logger configured successfully.");
+
+	        } catch (IOException e) {
+	            LOGGER.log(Level.SEVERE,
+	                    "Failed to set up logging handlers for SmartSalesApp.", e);
+	        }
+	    }
 
     // Scanner used for all user input from the console
     private static final Scanner SCANNER = new Scanner(System.in);
@@ -109,23 +143,44 @@ public class SmartSalesApp {
         handleDisplayInventory();
         int id = readInt("Enter product id: ");
 
+        LOGGER.info("User attempting to add product id " + id + " to cart.");
+
         Optional<Product> p = productRepository.findById(id);
         if (p.isEmpty()) {
             System.out.println("Product not found.");
+            LOGGER.warning("Invalid product id: " + id + " (not found).");
             return;
         }
+
+        Product product = p.get();
 
         int qty = readInt("Quantity: ");
 
+        LOGGER.fine("Requested quantity " + qty + " for product " + product.getName());
+
         // Basic validation for inventory control
-        if (qty <= 0 || qty > p.get().getQuantityInStock()) {
+        if (qty <= 0) {
             System.out.println("Invalid quantity.");
+            LOGGER.warning("Rejected add-to-cart for product id " + product.getId()
+                    + " because quantity was " + qty);
             return;
         }
 
-        cart.addItem(p.get(), qty);
+        if (qty > product.getQuantityInStock()) {
+            System.out.println("Invalid quantity.");
+            LOGGER.warning("Insufficient stock for product id " + product.getId()
+                    + ". Requested " + qty
+                    + ", available " + product.getQuantityInStock());
+            return;
+        }
+
+        cart.addItem(product, qty);
         System.out.println("Item added.");
+
+        LOGGER.info("Added to cart: " + qty + " x " + product.getName()
+                + " (id " + product.getId() + ")");
     }
+
 
     /**
      * Displays all items currently in the shopping cart.
@@ -166,9 +221,13 @@ public class SmartSalesApp {
         sales.add(sale);  // Record sale
         cart.clear();     // Empty cart after purchase
 
+        LOGGER.info("Checkout completed for sale id " + sale.getId()
+                + " with total " + sale.getTotal());
+
         System.out.println("Checkout complete.");
         System.out.println("Sale id: " + sale.getId());
         System.out.printf("Sale Total: %.2f\n", sale.getTotal());
+
     }
 
     /**
@@ -261,14 +320,18 @@ public class SmartSalesApp {
     private static int readInt(String prompt) {
         while (true) {
             System.out.print(prompt);
+            String line = SCANNER.nextLine();
 
             try {
-                return Integer.parseInt(SCANNER.nextLine());
+                return Integer.parseInt(line);
             } catch (Exception e) {
                 System.out.println("Enter a valid number.");
+                LOGGER.log(Level.WARNING,
+                        "Invalid numeric input from user: \"" + line + "\"", e);
             }
         }
     }
+
 
     /**
      * Seeds the application with a small test inventory.
