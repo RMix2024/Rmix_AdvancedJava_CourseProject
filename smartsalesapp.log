@@ -1,0 +1,27 @@
+Nov 29, 2025 2:37:17 PM com.saletech.SmartSalesApp <clinit>
+CONFIG: SmartSalesApp logger configured successfully.
+Nov 29, 2025 2:37:21 PM com.saletech.SmartSalesApp readInt
+WARNING: Invalid numeric input from user: ""
+java.lang.NumberFormatException: For input string: ""
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:672)
+	at java.base/java.lang.Integer.parseInt(Integer.java:778)
+	at com.saletech.SmartSalesApp.readInt(SmartSalesApp.java:326)
+	at com.saletech.SmartSalesApp.main(SmartSalesApp.java:79)
+
+Nov 29, 2025 2:42:27 PM com.saletech.SmartSalesApp <clinit>
+CONFIG: SmartSalesApp logger configured successfully.
+Nov 29, 2025 2:51:49 PM com.saletech.SmartSalesApp <clinit>
+CONFIG: SmartSalesApp logger configured successfully.
+Nov 29, 2025 2:51:53 PM com.saletech.SmartSalesApp handleCheckout
+INFO: Checkout attempted with empty cart.
+Nov 29, 2025 3:00:29 PM com.saletech.SmartSalesApp <clinit>
+CONFIG: SmartSalesApp logger configured successfully.
+Nov 29, 2025 3:00:45 PM com.saletech.SmartSalesApp handleAddToCart
+INFO: User attempting to add product id 1 to cart.
+Nov 29, 2025 3:03:15 PM com.saletech.SmartSalesApp handleAddToCart
+FINE: Requested quantity 3 for product USB Cable
+Nov 29, 2025 3:03:15 PM com.saletech.SmartSalesApp handleAddToCart
+INFO: Added to cart: 3 x USB Cable (id 1)
+Nov 29, 2025 3:03:53 PM com.saletech.SmartSalesApp handleCheckout
+INFO: Checkout completed for sale id 1 with total 29.97

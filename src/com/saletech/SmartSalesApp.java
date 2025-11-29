@@ -195,10 +195,11 @@ public class SmartSalesApp {
      * Updates product inventory levels and clears the cart.
      */
     private static void handleCheckout() {
-        if (cart.getItems().isEmpty()) {
-            System.out.println("Cart empty.");
-            return;
-        }
+    	if (cart.getItems().isEmpty()) {
+    	    System.out.println("Cart empty.");
+    	    LOGGER.info("Checkout attempted with empty cart.");
+    	    return;
+    	}
 
         // User must be connected to a customer record
         Customer customer = selectOrCreateCustomer();
