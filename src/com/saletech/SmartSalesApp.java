@@ -52,9 +52,14 @@ public class SmartSalesApp {
     // Scanner used for all user input from the console
     private static final Scanner SCANNER = new Scanner(System.in);
 
-    // Repository pattern for products (currently in-memory)
+//    // Repository pattern for products (currently in-memory)
+//    private static final ProductRepository productRepository =
+//            new InMemoryProductRepository();
+
+    // switched to DataBAse
+    
     private static final ProductRepository productRepository =
-            new InMemoryProductRepository();
+            new DbProductRepository();
 
     // Stores customer records (later modules will store these in a DB)
     private static final List<Customer> customers = new ArrayList<>();
@@ -70,7 +75,11 @@ public class SmartSalesApp {
      * Loads sample inventory, then displays the main menu loop.
      */
     public static void main(String[] args) {
-        seedSampleData();   // Populate test data for demonstration
+    	  System.out.println("Testing DB connection...");
+    	    System.out.println(productRepository.findAll());
+    	    System.out.println("DB test complete.");
+    	
+//        seedSampleData();   // Populate test data for demonstration
         boolean running = true;
 
         // Main application loop
@@ -338,10 +347,10 @@ public class SmartSalesApp {
      * Seeds the application with a small test inventory.
      * This replaces database interaction during early modules.
      */
-    private static void seedSampleData() {
-        productRepository.save(new Product(1, "USB Cable", "TechCo", 9.99, 50));
-        productRepository.save(new Product(2, "Wireless Mouse", "ClickTech", 24.99, 30));
-        productRepository.save(new Product(3, "Laptop Stand", "ErgoWare", 39.99, 20));
-        productRepository.save(new Product(4, "4K Monitor", "ViewMax", 249.99, 10));
-    }
+//    private static void seedSampleData() {
+//        productRepository.save(new Product(1, "USB Cable", "TechCo", 9.99, 50));
+//        productRepository.save(new Product(2, "Wireless Mouse", "ClickTech", 24.99, 30));
+//        productRepository.save(new Product(3, "Laptop Stand", "ErgoWare", 39.99, 20));
+//        productRepository.save(new Product(4, "4K Monitor", "ViewMax", 249.99, 10));
+//    }
 }
