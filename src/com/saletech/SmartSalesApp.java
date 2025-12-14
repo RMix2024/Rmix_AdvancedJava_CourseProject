@@ -1,88 +1,63 @@
 package com.saletech;
 
-import java.util.*;
 import java.io.IOException;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.LogManager;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
+import java.util.List;
+import java.util.Optional;
+import java.util.Scanner;
+import java.util.logging.*;
+
 
 
 /**
  * SmartSalesApp
  *
- * This class is the main entry point for the SaleTech Innovations
- * sales application. It provides a console-based user interface
- * and handles user-driven actions such as searching products,
- * adding items to a cart, checking out, and managing customers.
- *
- * Later modules will connect this logic to a database and expand
- * the system into a full inventory/order solution.
+ * Console UI for SaleTech Innovations Smart Sales.
+ * Finished product version: products, customers, and sales are persisted in the database.
  */
 public class SmartSalesApp {
-	 private static final Logger LOGGER =
-	            Logger.getLogger(SmartSalesApp.class.getName());
 
-	    static {
-	        try {
-	            LogManager.getLogManager().reset();
+    private static final Logger LOGGER =
+            Logger.getLogger(SmartSalesApp.class.getName());
 
-	            LOGGER.setLevel(Level.ALL);
+    static {
+        try {
+            LogManager.getLogManager().reset();
 
-	            ConsoleHandler consoleHandler = new ConsoleHandler();
-	            consoleHandler.setLevel(Level.INFO);
-	            consoleHandler.setFormatter(new SimpleFormatter());
-	            LOGGER.addHandler(consoleHandler);
+            LOGGER.setLevel(Level.ALL);
 
-	            FileHandler fileHandler = new FileHandler("smartsalesapp.log", true);
-	            fileHandler.setLevel(Level.FINE);
-	            fileHandler.setFormatter(new SimpleFormatter());
-	            LOGGER.addHandler(fileHandler);
+            ConsoleHandler consoleHandler = new ConsoleHandler();
+            consoleHandler.setLevel(Level.INFO);
+            consoleHandler.setFormatter(new SimpleFormatter());
+            LOGGER.addHandler(consoleHandler);
 
-	            LOGGER.config("SmartSalesApp logger configured successfully.");
+            FileHandler fileHandler = new FileHandler("smartsalesapp.log", true);
+            fileHandler.setLevel(Level.FINE);
+            fileHandler.setFormatter(new SimpleFormatter());
+            LOGGER.addHandler(fileHandler);
 
-	        } catch (IOException e) {
-	            LOGGER.log(Level.SEVERE,
-	                    "Failed to set up logging handlers for SmartSalesApp.", e);
-	        }
-	    }
+            LOGGER.config("SmartSalesApp logger configured successfully.");
 
-    // Scanner used for all user input from the console
+        } catch (IOException e) {
+            System.err.println("Failed to set up logging for SmartSalesApp.");
+            e.printStackTrace();
+        }
+    }
+
     private static final Scanner SCANNER = new Scanner(System.in);
 
-//    // Repository pattern for products (currently in-memory)
-//    private static final ProductRepository productRepository =
-//            new InMemoryProductRepository();
+    private static final ProductRepository productRepository = new DbProductRepository();
+    private static final CustomerRepository customerRepository = new DbCustomerRepository();
+    private static final SaleRepository saleRepository = new DbSaleRepository();
 
-    // switched to DataBAse
-    
-    private static final ProductRepository productRepository =
-            new DbProductRepository();
-
-    // Stores customer records (later modules will store these in a DB)
-    private static final List<Customer> customers = new ArrayList<>();
-
-    // Stores completed sales transactions
-    private static final List<Sale> sales = new ArrayList<>();
-
-    // Shopping cart instance shared during a user session
     private static final ShoppingCart cart = new ShoppingCart();
 
-    /**
-     * Application entry point.
-     * Loads sample inventory, then displays the main menu loop.
-     */
     public static void main(String[] args) {
-    	  System.out.println("Testing DB connection...");
-    	    System.out.println(productRepository.findAll());
-    	    System.out.println("DB test complete.");
-    	
-//        seedSampleData();   // Populate test data for demonstration
-        boolean running = true;
+        if (!testDatabase()) {
+            System.out.println("Database connection failed. Please verify your DB settings.");
+            return;
+        }
 
-        // Main application loop
+        boolean running = true;
         while (running) {
             printMainMenu();
             int choice = readInt("Choose an option: ");
@@ -94,9 +69,10 @@ public class SmartSalesApp {
                 case 4 -> handleViewCart();
                 case 5 -> handleCheckout();
                 case 6 -> handleCustomerMenu();
+                case 7 -> handleReportsMenu();
                 case 0 -> {
                     System.out.println("Exiting Smart Sales Application. Goodbye.");
-                    running = false;  // End program loop
+                    running = false;
                 }
                 default -> System.out.println("Invalid option.");
             }
@@ -104,9 +80,17 @@ public class SmartSalesApp {
         }
     }
 
-    /**
-     * Prints the main application menu.
-     */
+    private static boolean testDatabase() {
+        try {
+            int count = productRepository.findAll().size();
+            LOGGER.info("Database connected. Products loaded: " + count);
+            return true;
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Database test failed.", ex);
+            return false;
+        }
+    }
+
     private static void printMainMenu() {
         System.out.println("======================================");
         System.out.println(" SaleTech Innovations - Smart Sales");
@@ -117,135 +101,148 @@ public class SmartSalesApp {
         System.out.println("4. View cart");
         System.out.println("5. Checkout");
         System.out.println("6. Customer management");
+        System.out.println("7. Reports");
         System.out.println("0. Exit");
     }
 
-    /**
-     * Allows user to search inventory by product name or manufacturer.
-     */
     private static void handleSearchProducts() {
         System.out.print("Enter search term: ");
-        String term = SCANNER.nextLine();
+        String term = SCANNER.nextLine().trim();
 
-        // Repository performs case-insensitive search
-        List<Product> results = productRepository.searchByNameOrManufacturer(term);
+        if (term.isEmpty()) {
+            System.out.println("Search term cannot be empty.");
+            return;
+        }
 
-        if (results.isEmpty()) {
-            System.out.println("No products found.");
-        } else {
-            results.forEach(System.out::println);
+        try {
+            List<Product> results = productRepository.searchByNameOrManufacturer(term);
+            if (results.isEmpty()) {
+                System.out.println("No products found.");
+            } else {
+                results.forEach(System.out::println);
+            }
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Search failed for term: " + term, ex);
+            System.out.println("Search failed. Please try again.");
         }
     }
 
-    /**
-     * Displays all products currently available in the inventory.
-     */
     private static void handleDisplayInventory() {
-        productRepository.findAll().forEach(System.out::println);
+        try {
+            productRepository.findAll().forEach(System.out::println);
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Failed to display inventory.", ex);
+            System.out.println("Unable to load inventory right now.");
+        }
     }
 
-    /**
-     * Allows the user to select an item from the inventory and add
-     * it to their cart if the quantity requested is available.
-     */
     private static void handleAddToCart() {
         handleDisplayInventory();
         int id = readInt("Enter product id: ");
 
-        LOGGER.info("User attempting to add product id " + id + " to cart.");
+        Optional<Product> p;
+        try {
+            p = productRepository.findById(id);
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "DB error while finding product id: " + id, ex);
+            System.out.println("Unable to look up product right now.");
+            return;
+        }
 
-        Optional<Product> p = productRepository.findById(id);
         if (p.isEmpty()) {
             System.out.println("Product not found.");
-            LOGGER.warning("Invalid product id: " + id + " (not found).");
             return;
         }
 
         Product product = p.get();
-
         int qty = readInt("Quantity: ");
 
-        LOGGER.fine("Requested quantity " + qty + " for product " + product.getName());
-
-        // Basic validation for inventory control
         if (qty <= 0) {
             System.out.println("Invalid quantity.");
-            LOGGER.warning("Rejected add-to-cart for product id " + product.getId()
-                    + " because quantity was " + qty);
             return;
         }
 
         if (qty > product.getQuantityInStock()) {
             System.out.println("Invalid quantity.");
-            LOGGER.warning("Insufficient stock for product id " + product.getId()
-                    + ". Requested " + qty
-                    + ", available " + product.getQuantityInStock());
+            System.out.println("Available: " + product.getQuantityInStock());
             return;
         }
 
         cart.addItem(product, qty);
         System.out.println("Item added.");
-
-        LOGGER.info("Added to cart: " + qty + " x " + product.getName()
-                + " (id " + product.getId() + ")");
+        LOGGER.info("Added to cart: " + qty + " x " + product.getName() + " (id " + product.getId() + ")");
     }
 
-
-    /**
-     * Displays all items currently in the shopping cart.
-     */
     private static void handleViewCart() {
         cart.printCart();
-        System.out.printf("Total: $%.2f\n", cart.getTotal());
+        System.out.printf("Total: $%.2f%n", cart.getTotal());
     }
 
-    /**
-     * Converts current cart contents into a completed sale.
-     * Updates product inventory levels and clears the cart.
-     */
     private static void handleCheckout() {
-    	if (cart.getItems().isEmpty()) {
-    	    System.out.println("Cart empty.");
-    	    LOGGER.info("Checkout attempted with empty cart.");
-    	    return;
-    	}
-
-        // User must be connected to a customer record
-        Customer customer = selectOrCreateCustomer();
-        if (customer == null) return;
-
-        // Create a new sale transaction
-        Sale sale = new Sale(customer);
-
-        // Convert cart items into sale lines and adjust stock
-        for (CartItem item : cart.getItems()) {
-            sale.addLine(item.getProduct(), item.getQuantity(), item.getProduct().getPrice());
-
-            // Update inventory count
-            productRepository.updateQuantity(
-                    item.getProduct().getId(),
-                    item.getProduct().getQuantityInStock() - item.getQuantity()
-            );
+        if (cart.getItems().isEmpty()) {
+            System.out.println("Cart empty.");
+            return;
         }
 
-        sales.add(sale);  // Record sale
-        cart.clear();     // Empty cart after purchase
+        Customer customer = selectOrCreateCustomerDb();
+        if (customer == null || customer.getId() <= 0) {
+            System.out.println("Checkout cancelled.");
+            return;
+        }
 
-        LOGGER.info("Checkout completed for sale id " + sale.getId()
-                + " with total " + sale.getTotal());
+        Sale sale = new Sale(customer);
+
+        // Validate and apply inventory updates
+        for (CartItem item : cart.getItems()) {
+            int productId = item.getProduct().getId();
+            int qtyRequested = item.getQuantity();
+
+            Optional<Product> fresh = productRepository.findById(productId);
+            if (fresh.isEmpty()) {
+                System.out.println("Checkout failed. Product missing: " + productId);
+                return;
+            }
+
+            Product p = fresh.get();
+            int available = p.getQuantityInStock();
+
+            if (qtyRequested > available) {
+                System.out.println("Checkout failed. Not enough stock for: " + p.getName());
+                System.out.println("Requested: " + qtyRequested + " Available: " + available);
+                return;
+            }
+        }
+
+        // Add lines and update inventory
+        for (CartItem item : cart.getItems()) {
+            int productId = item.getProduct().getId();
+            int qty = item.getQuantity();
+
+            Optional<Product> fresh = productRepository.findById(productId);
+            if (fresh.isEmpty()) {
+                System.out.println("Checkout failed. Product missing: " + productId);
+                return;
+            }
+
+            Product p = fresh.get();
+
+            sale.addLine(p, qty, p.getPrice());
+
+            productRepository.updateQuantity(productId, p.getQuantityInStock() - qty);
+        }
+
+        // Persist the sale to DB
+        Sale saved = saleRepository.save(sale);
+
+        cart.clear();
 
         System.out.println("Checkout complete.");
-        System.out.println("Sale id: " + sale.getId());
-        System.out.printf("Sale Total: %.2f\n", sale.getTotal());
+        System.out.println("Sale id: " + saved.getId());
+        System.out.printf("Sale Total: %.2f%n", saved.getTotal());
 
+        LOGGER.info("Checkout completed for sale id " + saved.getId() + " total " + saved.getTotal());
     }
 
-    /**
-     * Displays menu options for customer management:
-     * - Create new customer
-     * - Find customer by email
-     * - List existing customers
-     */
     private static void handleCustomerMenu() {
         System.out.println("1. Create customer");
         System.out.println("2. Find by email");
@@ -255,49 +252,61 @@ public class SmartSalesApp {
         int choice = readInt("Choose: ");
 
         switch (choice) {
-            case 1 -> createCustomer();
-            case 2 -> findCustomerByEmail();
-            case 3 -> customers.forEach(System.out::println);
+            case 1 -> createCustomerDb();
+            case 2 -> findCustomerByEmailDb();
+            case 3 -> listCustomersDb();
+            case 0 -> { }
+            default -> System.out.println("Invalid option.");
         }
     }
 
-    /**
-     * Creates a new customer object from user input.
-     */
-    private static void createCustomer() {
+    private static void createCustomerDb() {
         System.out.print("Name: ");
-        String name = SCANNER.nextLine();
+        String name = SCANNER.nextLine().trim();
 
         System.out.print("Email: ");
-        String email = SCANNER.nextLine();
+        String email = SCANNER.nextLine().trim();
 
-        Customer c = new Customer(name, email);
-        customers.add(c);
+        if (name.isEmpty() || email.isEmpty()) {
+            System.out.println("Name and email are required.");
+            return;
+        }
 
-        System.out.println("Customer created with id: " + c.getId());
+        Customer c = customerRepository.createOrGetByEmail(name, email);
+        if (c.getId() > 0) {
+            System.out.println("Customer saved with id: " + c.getId());
+        } else {
+            System.out.println("Customer could not be saved. Please try again.");
+        }
     }
 
-    /**
-     * Searches the customer list by email address.
-     */
-    private static void findCustomerByEmail() {
+    private static void findCustomerByEmailDb() {
         System.out.print("Email: ");
-        String email = SCANNER.nextLine();
+        String email = SCANNER.nextLine().trim();
 
-        customers.stream()
-                .filter(c -> c.getEmail().equalsIgnoreCase(email))
-                .findFirst()
-                .ifPresentOrElse(
-                        System.out::println,
-                        () -> System.out.println("Not found.")
-                );
+        if (email.isEmpty()) {
+            System.out.println("Email is required.");
+            return;
+        }
+
+        Optional<Customer> c = customerRepository.findByEmail(email);
+        if (c.isPresent()) {
+            System.out.println(c.get());
+        } else {
+            System.out.println("Not found.");
+        }
     }
 
-    /**
-     * Allows user to either select an existing customer
-     * or create a new one during checkout.
-     */
-    private static Customer selectOrCreateCustomer() {
+    private static void listCustomersDb() {
+        List<Customer> customers = customerRepository.findAll();
+        if (customers.isEmpty()) {
+            System.out.println("No customers found.");
+            return;
+        }
+        customers.forEach(System.out::println);
+    }
+
+    private static Customer selectOrCreateCustomerDb() {
         System.out.println("1. Existing customer");
         System.out.println("2. Create new");
         System.out.println("0. Cancel");
@@ -306,51 +315,136 @@ public class SmartSalesApp {
 
         return switch (choice) {
             case 1 -> {
+                List<Customer> customers = customerRepository.findAll();
+                if (customers.isEmpty()) {
+                    System.out.println("No customers available. Create one first.");
+                    yield null;
+                }
                 customers.forEach(System.out::println);
                 int id = readInt("Customer id: ");
-
-                // Return matching customer or null
-                yield customers.stream()
-                        .filter(c -> c.getId() == id)
-                        .findFirst()
-                        .orElse(null);
+                yield customerRepository.findById(id).orElse(null);
             }
             case 2 -> {
-                createCustomer();
-                yield customers.get(customers.size() - 1);  // return newly created
+                System.out.print("Name: ");
+                String name = SCANNER.nextLine().trim();
+                System.out.print("Email: ");
+                String email = SCANNER.nextLine().trim();
+
+                if (name.isEmpty() || email.isEmpty()) {
+                    System.out.println("Name and email are required.");
+                    yield null;
+                }
+
+                yield customerRepository.createOrGetByEmail(name, email);
             }
             default -> null;
         };
     }
 
-    /**
-     * Utility method that repeatedly prompts the user until a valid
-     * integer is entered. Helps prevent input mismatch errors.
-     */
+    private static void handleReportsMenu() {
+        System.out.println("======================================");
+        System.out.println(" Reports");
+        System.out.println("======================================");
+        System.out.println("1. Inventory Report (Database)");
+        System.out.println("2. Low Stock Report (Database)");
+        System.out.println("3. Recent Sales Report (Database)");
+        System.out.println("0. Back");
+
+        int choice = readInt("Choose: ");
+
+        switch (choice) {
+            case 1 -> printInventoryReportDb();
+            case 2 -> printLowStockReportDb();
+            case 3 -> printRecentSalesReportDb();
+            case 0 -> { }
+            default -> System.out.println("Invalid option.");
+        }
+    }
+
+    private static void printInventoryReportDb() {
+        System.out.println("INVENTORY REPORT (DATABASE)");
+        System.out.println("--------------------------------------");
+
+        List<Product> products = productRepository.findAll();
+        if (products.isEmpty()) {
+            System.out.println("No products found in inventory.");
+            return;
+        }
+
+        int totalSkus = products.size();
+        int totalUnits = products.stream().mapToInt(Product::getQuantityInStock).sum();
+
+        products.forEach(System.out::println);
+
+        System.out.println("--------------------------------------");
+        System.out.println("Total SKUs: " + totalSkus);
+        System.out.println("Total Units in Stock: " + totalUnits);
+    }
+
+    private static void printLowStockReportDb() {
+        int threshold = readInt("Low stock threshold: ");
+        if (threshold < 0) {
+            System.out.println("Threshold must be 0 or greater.");
+            return;
+        }
+
+        System.out.println("LOW STOCK REPORT (DATABASE)");
+        System.out.println("Threshold: " + threshold);
+        System.out.println("--------------------------------------");
+
+        List<Product> products = productRepository.findAll();
+        boolean any = false;
+
+        for (Product p : products) {
+            if (p.getQuantityInStock() <= threshold) {
+                System.out.println(p);
+                any = true;
+            }
+        }
+
+        if (!any) {
+            System.out.println("No low stock items found.");
+        }
+    }
+
+    private static void printRecentSalesReportDb() {
+        int limit = readInt("How many recent sales: ");
+        if (limit <= 0) {
+            System.out.println("Enter a number greater than 0.");
+            return;
+        }
+
+        System.out.println("RECENT SALES REPORT (DATABASE)");
+        System.out.println("--------------------------------------");
+
+        List<SaleSummary> sales = saleRepository.findRecentSummaries(limit);
+        if (sales.isEmpty()) {
+            System.out.println("No sales found.");
+            return;
+        }
+
+        double grandTotal = 0.0;
+        for (SaleSummary s : sales) {
+            System.out.println(s);
+            grandTotal += s.getTotal();
+        }
+
+        System.out.println("--------------------------------------");
+        System.out.println("Sales Count: " + sales.size());
+        System.out.println("Grand Total: " + String.format("%.2f", grandTotal));
+    }
+
     private static int readInt(String prompt) {
         while (true) {
             System.out.print(prompt);
             String line = SCANNER.nextLine();
 
             try {
-                return Integer.parseInt(line);
+                return Integer.parseInt(line.trim());
             } catch (Exception e) {
                 System.out.println("Enter a valid number.");
-                LOGGER.log(Level.WARNING,
-                        "Invalid numeric input from user: \"" + line + "\"", e);
-            }
+                LOGGER.log(Level.WARNING, "Invalid numeric input: \"" + line + "\"", e);
+                          }
         }
     }
-
-
-    /**
-     * Seeds the application with a small test inventory.
-     * This replaces database interaction during early modules.
-     */
-//    private static void seedSampleData() {
-//        productRepository.save(new Product(1, "USB Cable", "TechCo", 9.99, 50));
-//        productRepository.save(new Product(2, "Wireless Mouse", "ClickTech", 24.99, 30));
-//        productRepository.save(new Product(3, "Laptop Stand", "ErgoWare", 39.99, 20));
-//        productRepository.save(new Product(4, "4K Monitor", "ViewMax", 249.99, 10));
-//    }
 }

@@ -25,3 +25,34 @@ Nov 29, 2025 3:03:15 PM com.saletech.SmartSalesApp handleAddToCart
 INFO: Added to cart: 3 x USB Cable (id 1)
 Nov 29, 2025 3:03:53 PM com.saletech.SmartSalesApp handleCheckout
 INFO: Checkout completed for sale id 1 with total 29.97
+Dec 07, 2025 2:04:43 PM com.saletech.SmartSalesApp <clinit>
+CONFIG: SmartSalesApp logger configured successfully.
+Dec 07, 2025 2:46:22 PM com.saletech.SmartSalesApp handleAddToCart
+INFO: User attempting to add product id 2 to cart.
+Dec 07, 2025 2:46:38 PM com.saletech.SmartSalesApp handleAddToCart
+FINE: Requested quantity 3 for product Basketball
+Dec 07, 2025 2:46:38 PM com.saletech.SmartSalesApp handleAddToCart
+INFO: Added to cart: 3 x Basketball (id 2)
+Dec 07, 2025 2:48:26 PM com.saletech.SmartSalesApp readInt
+WARNING: Invalid numeric input from user: "basketball"
+java.lang.NumberFormatException: For input string: "basketball"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at java.base/java.lang.Integer.parseInt(Integer.java:778)
+	at com.saletech.SmartSalesApp.readInt(SmartSalesApp.java:336)
+	at com.saletech.SmartSalesApp.main(SmartSalesApp.java:88)
+
+Dec 07, 2025 2:49:34 PM com.saletech.SmartSalesApp <clinit>
+CONFIG: SmartSalesApp logger configured successfully.
+Dec 07, 2025 2:50:12 PM com.saletech.SmartSalesApp handleAddToCart
+INFO: User attempting to add product id 1 to cart.
+Dec 07, 2025 2:50:15 PM com.saletech.SmartSalesApp handleAddToCart
+FINE: Requested quantity 3 for product Soccer Ball
+Dec 07, 2025 2:50:15 PM com.saletech.SmartSalesApp handleAddToCart
+INFO: Added to cart: 3 x Soccer Ball (id 1)
+Dec 07, 2025 2:51:41 PM com.saletech.SmartSalesApp handleCheckout
+INFO: Checkout completed for sale id 1 with total 89.97
+Dec 14, 2025 12:42:13 PM com.saletech.SmartSalesApp <clinit>
+CONFIG: SmartSalesApp logger configured successfully.
+Dec 14, 2025 12:42:14 PM com.saletech.SmartSalesApp main
+INFO: Database connected. Product count loaded: 0
